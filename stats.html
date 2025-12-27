@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习统计 - 英语单词学习助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./resources/anime.min.js"></script>
+    <script src="./resources/echarts.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2C3E50;
+            --secondary-color: #3498DB;
+            --success-color: #27AE60;
+            --warning-color: #F39C12;
+            --background-color: #F8F9FA;
+            --card-background: #FFFFFF;
+            --text-primary: #2C3E50;
+            --text-secondary: #7F8C8D;
+        }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%);
+            min-height: 100vh;
+        }
+        
+        .stats-card {
+            background: var(--card-background);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #3498DB, #2C3E50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .chart-container {
+            height: 400px;
+            width: 100%;
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s ease-in-out;
+        }
+        
+        .achievement-badge {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 auto 1rem;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        .achievement-locked {
+            background: linear-gradient(135deg, #BDC3C7, #95A5A6);
+            box-shadow: 0 4px 15px rgba(189, 195, 199, 0.3);
+        }
+        
+        .study-streak {
+            background: linear-gradient(135deg, #E74C3C, #C0392B);
+            color: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+        }
+        
+        .streak-number {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .time-filter {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        
+        .time-filter button {
+            padding: 8px 16px;
+            border: 2px solid #E5E7EB;
+            border-radius: 8px;
+            background: white;
+            color: #6B7280;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .time-filter button.active {
+            border-color: #3498DB;
+            background: #3498DB;
+            color: white;
+        }
+        
+        .time-filter button:hover:not(.active) {
+            border-color: #3498DB;
+            color: #3498DB;
+        }
+        
+        .word-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: rgba(52, 152, 219, 0.05);
+            border-left: 4px solid #3498DB;
+            transition: all 0.3s ease;
+        }
+        
+        .word-list-item:hover {
+            background: rgba(52, 152, 219, 0.1);
+            transform: translateX(4px);
+        }
+        
+        .word-info {
+            flex: 1;
+        }
+        
+        .word-text {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+        
+        .word-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .mastery-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .mastery-mastered {
+            background: rgba(39, 174, 96, 0.1);
+            color: #27AE60;
+        }
+        
+        .mastery-learning {
+            background: rgba(243, 156, 18, 0.1);
+            color: #F39C12;
+        }
+        
+        .mastery-new {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498DB;
+        }
+        
+        @media (max-width: 768px) {
+            .stat-number {
+                font-size: 2rem;
+            }
+            .chart-container {
+                height: 300px;
+            }
+            .streak-number {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="bg-white/90 backdrop-blur-md shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="text-2xl font-bold gradient-text">📚 WordMaster</div>
+                    <div class="hidden md:block text-sm text-gray-600">学习统计</div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="index.html" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">词库管理</a>
+                    <a href="study.html" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">学习模式</a>
+                    <a href="review.html" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">复习模式</a>
+                    <a href="stats.html" class="text-blue-600 font-medium">学习统计</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Stats Header -->
+    <div class="bg-white/80 backdrop-blur-md shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">
+                        学习统计
+                    </h1>
+                    <p class="text-gray-600 mt-2">详细的学习数据分析，助您掌握学习进度</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-2xl font-bold text-blue-600" id="totalStudyDays">0</div>
+                    <div class="text-sm text-gray-600">学习天数</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Overview Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="stats-card text-center">
+                <div class="stat-number" id="totalWordsLearned">0</div>
+                <div class="stat-label">总学习单词</div>
+                <div class="text-sm text-gray-500 mt-2">
+                    <span id="wordsToday">+0</span> 今日
+                </div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="stat-number" id="masteredWordsCount">0</div>
+                <div class="stat-label">已掌握单词</div>
+                <div class="text-sm text-gray-500 mt-2">
+                    <span id="masteryRate">0%</span> 掌握率
+                </div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="stat-number" id="totalStudyTime">0</div>
+                <div class="stat-label">学习时长(小时)</div>
+                <div class="text-sm text-gray-500 mt-2">
+                    平均 <span id="avgDailyTime">0</span> 分钟/天
+                </div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="stat-number" id="totalReviews">0</div>
+                <div class="stat-label">复习次数</div>
+                <div class="text-sm text-gray-500 mt-2">
+                    准确率 <span id="reviewAccuracy">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Study Streak -->
+        <div class="mb-8">
+            <div class="study-streak">
+                <div class="streak-number" id="studyStreak">0</div>
+                <div class="text-lg font-semibold mb-2">连续学习天数</div>
+                <div class="text-sm opacity-90">保持学习习惯，每天进步一点点！</div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Learning Progress Chart -->
+            <div class="stats-card">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800">学习进度趋势</h3>
+                    <div class="time-filter">
+                        <button class="active" onclick="changeTimeFilter('week', this)">7天</button>
+                        <button onclick="changeTimeFilter('month', this)">30天</button>
+                        <button onclick="changeTimeFilter('all', this)">全部</button>
+                    </div>
+                </div>
+                <div class="chart-container" id="progressChart"></div>
+            </div>
+
+            <!-- Mastery Distribution -->
+            <div class="stats-card">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6">掌握度分布</h3>
+                <div class="chart-container" id="masteryChart"></div>
+            </div>
+        </div>
+
+        <!-- Vocabulary Performance -->
+        <div class="stats-card mb-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-6">词库表现</h3>
+            <div id="vocabularyStats">
+                <!-- 词库统计将在这里生成 -->
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="stats-card mb-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-6">最近学习记录</h3>
+            <div id="recentActivity">
+                <!-- 最近活动将在这里生成 -->
+            </div>
+        </div>
+
+        <!-- Achievements -->
+        <div class="stats-card">
+            <h3 class="text-xl font-semibold text-gray-800 mb-6">学习成就</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6" id="achievements">
+                <!-- 成就徽章将在这里生成 -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="text-2xl font-bold mb-4 gradient-text">📚 WordMaster</div>
+            <p class="text-gray-400 mb-4">让英语学习变得更简单、更高效</p>
+            <div class="text-sm text-gray-500">
+                © 2025 WordMaster. 专注于英语单词学习体验
+            </div>
+        </div>
+    </footer>
+    <script src="idb.js"></script>
+    <script src="stats.js"></script>
+</body>
+</html>

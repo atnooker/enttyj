@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习模式 - 英语单词学习助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./resources/anime.min.js"></script>
+    <script src="./resources/splide.min.js"></script>
+    <link href="./resources/splide.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2C3E50;
+            --secondary-color: #3498DB;
+            --success-color: #27AE60;
+            --warning-color: #F39C12;
+            --background-color: #F8F9FA;
+            --card-background: #FFFFFF;
+            --text-primary: #2C3E50;
+            --text-secondary: #7F8C8D;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%);
+            min-height: 100vh;
+        }
+
+        .word-card {
+            background: var(--card-background);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-height: 400px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .word-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
+        }
+
+        .word-card.expanded {
+            transform: scale(1.02);
+        }
+
+        .word-display {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 6rem;
+            font-weight: 600;
+            line-height: 1.2;
+            color: var(--primary-color);
+            text-align: center;
+            transition: all 0.2s ease;
+            max-width: 1000px;
+        }
+        .word-display.compact { font-size: 3rem; }
+
+        .vowel {
+            color: rgb(194, 4, 4);
+        }
+
+        .phonetic-display {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 2rem;
+            line-height: 1.2;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 1rem;
+            font-style: italic;
+            transition: all 0.2s ease;
+        }
+
+        .meaning-display {
+            font-size: 3rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1rem;
+            line-height: 1.8;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: none;
+        }
+
+        .example-display {
+            font-size: 1.6rem;
+            color: var(--text-primary);
+            font-style: italic;
+            text-align: center;
+            line-height: 1.5;
+            padding: 1rem;
+            background: rgba(252, 180, 47, 0.2);
+            border-radius: 16px;
+            border-left: 4px solid #db8d34;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: none;
+        }
+
+        .word-card.expanded .meaning-display,
+        .word-card.expanded .example-display {
+            opacity: 1;
+            transform: translateY(0);
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498DB, #2980B9);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 16px 32px;
+            font-weight: 600;
+            font-size: 1.125rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            min-width: 140px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27AE60, #229954);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 16px 32px;
+            font-weight: 600;
+            font-size: 1.125rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            min-width: 140px;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #F39C12, #E67E22);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 16px 32px;
+            font-weight: 600;
+            font-size: 1.125rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            min-width: 140px;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.3);
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #3498DB, #27AE60);
+            height: 12px;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+
+        .stats-card {
+            background: var(--card-background);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .floating-hint {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498DB;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.2s ease;
+        }
+
+        .word-card:hover .floating-hint {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .mastery-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .mastery-indicator.mastered {
+            background: #27AE60;
+            box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
+        }
+
+        .mastery-indicator.learning {
+            background: #F39C12;
+            box-shadow: 0 0 20px rgba(243, 156, 18, 0.5);
+        }
+
+        .mastery-indicator.new {
+            background: #3498DB;
+            box-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
+        }
+
+        .study-complete {
+            background: linear-gradient(135deg, #27AE60, #2ECC71);
+            color: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(39, 174, 96, 0.2);
+        }
+
+        .achievement-badge {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: white;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+        }
+
+        .keyboard-hint {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            opacity: 0.7;
+        }
+
+        .keyboard-hint kbd {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+
+        @media (max-width: 768px) {
+            .word-display {
+                font-size: 2rem;
+            }
+
+            .phonetic-display {
+                font-size: 1.125rem;
+            }
+
+            .meaning-display {
+                font-size: 1rem;
+            }
+
+            .example-display {
+                font-size: 0.875rem;
+                padding: 1rem;
+            }
+
+            .btn-primary,
+            .btn-success,
+            .btn-warning {
+                padding: 12px 24px;
+                font-size: 1rem;
+                min-width: 120px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="bg-white/90 backdrop-blur-md shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="text-2xl font-bold gradient-text">📚 WordMaster</div>
+                    <div class="hidden md:block text-sm text-gray-600">学习模式</div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="index.html"
+                        class="text-gray-700 hover:text-blue-600 font-medium transition-colors">词库管理</a>
+                    <a href="study.html" class="text-blue-600 font-medium">学习模式</a>
+                    <a href="review.html"
+                        class="text-gray-700 hover:text-blue-600 font-medium transition-colors">复习模式</a>
+                    <a href="stats.html"
+                        class="text-gray-700 hover:text-blue-600 font-medium transition-colors">学习统计</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Study Header -->
+    <div class="bg-white/80 backdrop-blur-md shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center mb-2">
+                <div>
+                    <p class="text-gray-600 mt-2" id="studyInfo">正在加载学习内容...</p>
+                </div>
+                <button onclick="exitStudy()"
+                    class="text-gray-600 hover:text-gray-800 px-4 py-2 rounded-lg transition-colors">
+                    ✕ 退出学习
+                </button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="bg-gray-200 rounded-full h-3 mb-2">
+                <div class="progress-bar rounded-full" id="studyProgress" style="width: 0%"></div>
+            </div>
+
+            <div class="flex justify-between text-sm text-gray-600">
+                <span>进度: <span id="currentProgress">0</span>/<span id="totalProgress">0</span></span>
+                <span>预计剩余: <span id="remainingTime">0分钟</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Study Area -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Study Card -->
+        <div id="studyCard" class="word-card p-8 mb-8" onclick="toggleCard()" style="display: none;">
+            <div class="floating-hint">点击展开详情</div>
+            <div class="mastery-indicator new" id="masteryIndicator"></div>
+
+            <div class="flex flex-col justify-center items-center h-full">
+                <div class="word-display" id="wordDisplay">
+                    Loading...
+                </div>
+                <div class="phonetic-display" id="phoneticDisplay">
+                    /ˈləʊdɪŋ/
+                </div>
+                <div class="meaning-display" id="meaningDisplay">
+                    正在加载单词含义...
+                </div>
+                <div class="example-display" id="exampleDisplay">
+                    Loading example sentence...
+                </div>
+            </div>
+        </div>
+
+        <!-- Study Complete -->
+        <div id="studyComplete" class="study-complete hidden">
+            <div class="achievement-badge">🏆</div>
+            <h2 class="text-3xl font-bold mb-4">学习完成！</h2>
+            <p class="text-lg mb-6">恭喜您完成了本次学习计划</p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="text-center">
+                    <div class="text-2xl font-bold" id="completedWords">0</div>
+                    <div class="text-sm opacity-90">已完成</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold" id="masteredCount">0</div>
+                    <div class="text-sm opacity-90">新掌握</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold" id="studyTime">0</div>
+                    <div class="text-sm opacity-90">学习时长(分)</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold" id="accuracy">0%</div>
+                    <div class="text-sm opacity-90">准确率</div>
+                </div>
+            </div>
+            <div class="flex space-x-4 justify-center">
+                <button onclick="startNewStudy()"
+                    class="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                    再次学习
+                </button>
+                <button onclick="goToReview()"
+                    class="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                    开始复习
+                </button>
+                <button onclick="goToStats()"
+                    class="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                    查看统计
+                </button>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div id="actionButtons" class="flex justify-center space-x-6 mb-8" style="display: none;">
+            <button onclick="markFamiliar()" class="btn-success" id="familiarBtn">
+                ✅ 记得
+            </button>
+            <button onclick="markUnfamiliar()" class="btn-warning" id="unfamiliarBtn">
+                ❌ 不会
+            </button>
+            <button onclick="playAudio()" class="btn-primary" id="audioBtn">
+                🔊 发音
+            </button>
+        </div>
+
+        <!-- Study Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="stats-card text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2" id="sessionWords">0</div>
+                <div class="text-gray-600">本次学习</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="text-3xl font-bold text-green-600 mb-2" id="sessionFamiliar">0</div>
+                <div class="text-gray-600">记得</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="text-3xl font-bold text-orange-600 mb-2" id="sessionUnfamiliar">0</div>
+                <div class="text-gray-600">不会</div>
+            </div>
+        </div>
+
+        <!-- Quick Settings -->
+        <div class="stats-card">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">学习设置</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">学习模式</label>
+                    <select id="studyMode"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="random">随机学习</option>
+                        <option value="sequential">顺序学习</option>
+                        <option value="priority">优先难词</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">自动发音</label>
+                    <select id="autoPlay"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="off">关闭</option>
+                        <option value="on">开启</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">中文释义</label>
+                    <select id="autoChinese"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="off">关闭</option>
+                        <option value="on">开启</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">元音标红</label>
+                    <select id="highlightVowels"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="off">关闭</option>
+                        <option value="on">开启</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Keyboard Hint -->
+    <div class="keyboard-hint hidden md:block">
+        <kbd>空格</kbd> 展开/收起 <kbd>←</kbd> <kbd>→</kbd> 切换 <kbd>F</kbd> 记得 <kbd>U</kbd> 不会 <kbd>P</kbd> 发音
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="text-2xl font-bold mb-4 gradient-text">📚 WordMaster</div>
+            <p class="text-gray-400 mb-4">让英语学习变得更简单、更高效</p>
+            <div class="text-sm text-gray-500">
+                © 2025 WordMaster. 专注于英语单词学习体验
+            </div>
+        </div>
+    </footer>
+    <script src="idb.js"></script>
+    <script src="study-mode.js"></script>
+    <script>
+        function highlightVowels() {
+            const wordDisplay = document.getElementById('wordDisplay');
+            const text = wordDisplay.textContent;
+
+            // 使用正则表达式匹配所有元音字母
+            const highlightedText = text.replace(/[aeiouAEIOU]/g, function (match) {
+                return `<span class="vowel">${match}</span>`;
+            });
+
+            wordDisplay.innerHTML = highlightedText;
+        }
+
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', highlightVowels);
+
+        // 监听 #wordDisplay 内容变化，随时自动调字号
+        const wordEl = document.getElementById('wordDisplay');
+        const observer = new MutationObserver(adjustFontSize);
+        observer.observe(wordEl, { childList: true, characterData: true, subtree: true });
+    </script>
+
+
+</body>
+
+</html>

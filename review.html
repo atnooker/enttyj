@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>复习模式 - 英语单词学习助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./resources/anime.min.js"></script>
+    <script src="./resources/echarts.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2C3E50;
+            --secondary-color: #3498DB;
+            --success-color: #27AE60;
+            --warning-color: #F39C12;
+            --background-color: #F8F9FA;
+            --card-background: #FFFFFF;
+            --text-primary: #2C3E50;
+            --text-secondary: #7F8C8D;
+        }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%);
+            min-height: 100vh;
+        }
+        
+        .review-card {
+            background: var(--card-background);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .review-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 25px 80px rgba(0,0,0,0.15);
+        }
+        
+        .difficulty-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .difficulty-easy {
+            background: rgba(39, 174, 96, 0.1);
+            color: #27AE60;
+        }
+        
+        .difficulty-medium {
+            background: rgba(243, 156, 18, 0.1);
+            color: #F39C12;
+        }
+        
+        .difficulty-hard {
+            background: rgba(231, 76, 60, 0.1);
+            color: #E74C3C;
+        }
+        
+        .word-preview {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .phonetic-preview {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+        
+        .stats-preview {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3498DB, #2980B9);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27AE60, #229954);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(39, 174, 96, 0.3);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #F39C12, #E67E22);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.3);
+        }
+        
+        .stats-card {
+            background: var(--card-background);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .review-mode-selector {
+            background: var(--card-background);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+            margin-bottom: 24px;
+        }
+        
+        .mode-option {
+            padding: 16px;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+        
+        .mode-option:hover {
+            border-color: #3498DB;
+            background: rgba(52, 152, 219, 0.05);
+        }
+        
+        .mode-option.selected {
+            border-color: #27AE60;
+            background: rgba(39, 174, 96, 0.05);
+        }
+        
+        .mode-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+        
+        .mode-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .review-word-card {
+            background: var(--card-background);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            min-height: 400px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .review-word-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 25px 80px rgba(0,0,0,0.15);
+        }
+        
+        .review-word-card.expanded {
+            transform: scale(1.02);
+        }
+        
+        .review-word-display {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .review-phonetic-display {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-style: italic;
+            transition: all 0.3s ease;
+        }
+        
+        .review-meaning-display {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            text-align: center;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .review-example-display {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            text-align: center;
+            line-height: 1.6;
+            padding: 1.5rem;
+            background: rgba(52, 152, 219, 0.05);
+            border-radius: 16px;
+            border-left: 4px solid #3498DB;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .review-word-card.expanded .review-meaning-display,
+        .review-word-card.expanded .review-example-display {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+        
+        .empty-state-description {
+            font-size: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .review-word-display {
+                font-size: 2rem;
+            }
+            .review-phonetic-display {
+                font-size: 1.125rem;
+            }
+            .review-meaning-display {
+                font-size: 1rem;
+            }
+            .review-example-display {
+                font-size: 0.875rem;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="bg-white/90 backdrop-blur-md shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="text-2xl font-bold gradient-text">📚 WordMaster</div>
+                    <div class="hidden md:block text-sm text-gray-600">复习模式</div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="index.html" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">词库管理</a>
+                    <a href="study.html" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">学习模式</a>
+                    <a href="review.html" class="text-blue-600 font-medium">复习模式</a>
+                    <a href="stats.html" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">学习统计</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Review Header -->
+    <div class="bg-white/80 backdrop-blur-md shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">
+                        智能复习
+                    </h1>
+                    <p class="text-gray-600 mt-2">基于记忆曲线，智能推荐需要复习的单词</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-2xl font-bold text-blue-600" id="totalReviewWords">0</div>
+                    <div class="text-sm text-gray-600">待复习单词</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Review Mode Selection -->
+        <div class="review-mode-selector">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                选择复习模式
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="mode-option selected" data-mode="difficult" onclick="selectReviewMode('difficult')">
+                    <div class="mode-title">📊 难点复习</div>
+                    <div class="mode-description">重点复习标记为"不会"的单词</div>
+                </div>
+                <div class="mode-option" data-mode="forgotten" onclick="selectReviewMode('forgotten')">
+                    <div class="mode-title">🔄 遗忘复习</div>
+                    <div class="mode-description">复习长时间未接触的单词</div>
+                </div>
+                <div class="mode-option" data-mode="random" onclick="selectReviewMode('random')">
+                    <div class="mode-title">🎲 随机复习</div>
+                    <div class="mode-description">随机选择单词进行全面复习</div>
+                </div>
+            </div>
+            
+            <div class="flex justify-center mt-6">
+                <button onclick="startReview()" class="btn-success" id="startReviewBtn">
+                    开始复习
+                </button>
+            </div>
+        </div>
+
+        <!-- Review Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="stats-card text-center">
+                <div class="text-3xl font-bold text-red-600 mb-2" id="difficultWords">0</div>
+                <div class="text-gray-600">难点单词</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="text-3xl font-bold text-orange-600 mb-2" id="forgottenWords">0</div>
+                <div class="text-gray-600">遗忘单词</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2" id="masteredToday">0</div>
+                <div class="text-gray-600">今日掌握</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="text-3xl font-bold text-green-600 mb-2" id="reviewAccuracy">0%</div>
+                <div class="text-gray-600">复习准确率</div>
+            </div>
+        </div>
+
+        <!-- Word List Preview -->
+        <div class="stats-card">
+            <h3 class="text-xl font-semibold text-gray-800 mb-6">待复习单词预览</h3>
+            <div id="wordListPreview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- 单词预览卡片将在这里生成 -->
+            </div>
+            
+            <div id="emptyReviewState" class="empty-state hidden">
+                <div class="empty-state-icon">🎉</div>
+                <div class="empty-state-title">太棒了！</div>
+                <div class="empty-state-description">您已经掌握了所有单词，暂无需要复习的内容</div>
+                <button onclick="goToStudy()" class="btn-primary">
+                    去学习新模式
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Review Session Modal -->
+    <div id="reviewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="max-w-7xl w-full mx-4 bg-white/80 backdrop-blur-md review-word-card">
+            <!-- Review Progress -->
+            <div class="bg-white/80 backdrop-blur-md p-6 mb-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold text-gray-800" id="reviewTitle">难点复习</h3>
+                    <button onclick="exitReview()" class="text-gray-600 hover:text-gray-800 text-2xl">×</button>
+                </div>
+                
+                <div class="bg-gray-200 rounded-full h-3 mb-4">
+                    <div class="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500" 
+                         id="reviewProgress" style="width: 0%"></div>
+                </div>
+                
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span>进度: <span id="currentReviewProgress">0</span>/<span id="totalReviewProgress">0</span></span>
+                    <span>剩余: <span id="remainingReviewTime">0分钟</span></span>
+                </div>
+            </div>
+            
+            <!-- Review Card -->
+            <div class="review-word-card p-8 mx-4 mb-4" onclick="toggleReviewCard()" id="reviewWordCard">
+                <div class="flex flex-col justify-center items-center h-full">
+                    <div class="review-word-display" id="reviewWordDisplay">
+                        Loading...
+                    </div>
+                    <div class="review-phonetic-display" id="reviewPhoneticDisplay">
+                        /ˈləʊdɪŋ/
+                    </div>
+                    <div class="review-meaning-display" id="reviewMeaningDisplay">
+                        正在加载单词含义...
+                    </div>
+                    <div class="review-example-display" id="reviewExampleDisplay">
+                        Loading example sentence...
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Review Action Buttons -->
+            <div class="flex justify-center space-x-6 mb-6">
+                <button onclick="markReviewDifficult()" class="btn-warning" id="difficultBtn">
+                    😰 还是不会
+                </button>
+                <button onclick="markReviewFamiliar()" class="btn-success" id="familiarBtn">
+                    ✅ 想起来了
+                </button>
+                <button onclick="playReviewAudio()" class="btn-primary" id="audioBtn">
+                    🔊 发音
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Complete Modal -->
+    <div id="reviewCompleteModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 text-center">
+            <div class="text-6xl mb-4">🏆</div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">复习完成！</h2>
+            <p class="text-gray-600 mb-6">恭喜您完成了本次复习计划</p>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600" id="reviewedCount">0</div>
+                    <div class="text-sm text-gray-600">已复习</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600" id="masteredInReview">0</div>
+                    <div class="text-sm text-gray-600">新掌握</div>
+                </div>
+            </div>
+            
+            <div class="flex space-x-4 justify-center">
+                <button onclick="startNewReview()" class="btn-primary">
+                    再次复习
+                </button>
+                <button onclick="goToStudy()" class="btn-success">
+                    去学习
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="text-2xl font-bold mb-4 gradient-text">📚 WordMaster</div>
+            <p class="text-gray-400 mb-4">让英语学习变得更简单、更高效</p>
+            <div class="text-sm text-gray-500">
+                © 2025 WordMaster. 专注于英语单词学习体验
+            </div>
+        </div>
+    </footer>
+    <script src="idb.js"></script>
+    <script src="review-mode.js"></script>
+</body>
+</html>
