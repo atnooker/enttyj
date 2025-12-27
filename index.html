@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语单词学习助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./resources/anime.min.js"></script>
+    <script src="./resources/echarts.min.js"></script>
+    <script src="./resources/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2C3E50;
+            --secondary-color: #3498DB;
+            --success-color: #27AE60;
+            --warning-color: #F39C12;
+            --background-color: #F8F9FA;
+            --card-background: #FFFFFF;
+            --text-primary: #2C3E50;
+            --text-secondary: #7F8C8D;
+        }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%);
+            min-height: 100vh;
+        }
+        
+        .hero-bg {
+            background-image: url('./resources/hero-bg.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        
+        .floating-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .word-card {
+            background: var(--card-background);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3498DB, #2980B9);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27AE60, #229954);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(39, 174, 96, 0.3);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #F39C12, #E67E22);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.3);
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #3498DB, #27AE60);
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .vocabulary-item {
+            background: var(--card-background);
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .vocabulary-item:hover {
+            border-color: #3498DB;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.15);
+        }
+        
+        .vocabulary-item.selected {
+            border-color: #27AE60;
+            background: rgba(39, 174, 96, 0.05);
+        }
+        
+        .unit-tag {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498DB;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .unit-tag:hover {
+            background: rgba(52, 152, 219, 0.2);
+        }
+        
+        .unit-tag.selected {
+            background: #3498DB;
+            color: white;
+        }
+        
+        .stats-card {
+            background: var(--card-background);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .achievement-badge {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: var(--card-background);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .word-display {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .phonetic-display {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-style: italic;
+        }
+        
+        .meaning-display {
+            font-size: 1.125rem;
+            color: var(--text-primary);
+            text-align: center;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        
+        .example-display {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            text-align: center;
+            line-height: 1.6;
+            padding: 1rem;
+            background: rgba(52, 152, 219, 0.05);
+            border-radius: 12px;
+            border-left: 4px solid #3498DB;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="bg-white/90 backdrop-blur-md shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="text-2xl font-bold gradient-text">📚 WordMaster</div>
+                    <div class="hidden md:block text-sm text-gray-600">学习模式</div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="index.html" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">词库管理</a>
+                    <a href="study.html" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">学习模式</a>
+                    <a href="review.html" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">复习模式</a>
+                    <a href="stats.html" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">学习统计</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+            <div class="stats-card text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2" id="totalWords">0</div>
+                <div class="text-gray-600">总单词数</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="text-3xl font-bold text-green-600 mb-2" id="masteredWords">0</div>
+                <div class="text-gray-600">已掌握</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="text-3xl font-bold text-orange-600 mb-2" id="learningWords">0</div>
+                <div class="text-gray-600">学习中</div>
+            </div>
+            <div class="stats-card text-center">
+                <div class="text-3xl font-bold text-purple-600 mb-2" id="todayProgress">0</div>
+                <div class="text-gray-600">今日学习</div>
+            </div>
+        </div>
+
+        <!-- Vocabulary Management -->
+        <div class="mb-12">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-bold text-gray-800">我的词库</h2>
+                <button onclick="showImportModal()" class="btn-primary">
+                    ➕ 导入新词库
+                </button>
+            </div>
+            
+            <div id="vocabularyList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 词库列表将在这里动态生成 -->
+            </div>
+            
+            <div id="emptyState" class="text-center py-12 hidden">
+                <div class="text-6xl mb-4">📚</div>
+                <h3 class="text-2xl font-semibold text-gray-700 mb-2">还没有词库</h3>
+                <p class="text-gray-600 mb-6">导入您的第一个词库开始英语学习之旅</p>
+                <button onclick="showImportModal()" class="btn-primary">
+                    导入词库
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="stats-card">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">最近学习</h3>
+            <div id="recentActivity" class="space-y-4">
+                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <div class="flex-1">
+                        <div class="font-medium">欢迎使用英语单词学习助手</div>
+                        <div class="text-sm text-gray-600">开始导入词库，开启您的英语学习之旅</div>
+                    </div>
+                    <div class="text-sm text-gray-500">刚刚</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center">
+        <div class="modal-content max-w-md w-full mx-4">
+            <div class="p-6">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">导入词库</h3>
+                <p class="text-gray-600 mb-6">选择Excel文件导入词库，支持.xlsx格式</p>
+                
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-6" id="dropZone">
+                    <div class="text-4xl mb-4">📁</div>
+                    <div class="text-lg font-medium text-gray-700 mb-2">拖拽文件到此处</div>
+                    <div class="text-sm text-gray-500 mb-4">或点击选择文件</div>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
+                    <button onclick="document.getElementById('fileInput').click()" class="btn-primary">
+                        选择文件
+                    </button>
+                </div>
+                
+                <div class="flex justify-end space-x-4">
+                    <button onclick="hideImportModal()" class="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                        取消
+                    </button>
+                    <button onclick="importVocabulary()" class="btn-primary" id="importBtn" disabled>
+                        导入
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vocabulary Detail Modal -->
+    <div id="vocabularyModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center">
+        <div class="modal-content max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800" id="vocabularyTitle">词库详情</h3>
+                    <button onclick="hideVocabularyModal()" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex flex-wrap gap-2 mb-4" id="unitTags">
+                        <!-- 单元标签将在这里生成 -->
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        已选择 <span id="selectedCount">0</span> 个单元，共 <span id="totalUnitWords">0</span> 个单词
+                    </div>
+                </div>
+                
+                <div class="flex space-x-4 mb-6">
+                    <button onclick="selectAllUnits()" class="btn-primary">
+                        全选
+                    </button>
+                    <button onclick="deselectAllUnits()" class="btn-warning">
+                        取消全选
+                    </button>
+                    <button onclick="startStudy()" class="btn-success" id="startStudyBtn" disabled>
+                        开始学习
+                    </button>
+                </div>
+                
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-800 mb-3">词库统计</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <div>
+                            <div class="text-2xl font-bold text-blue-600" id="modalTotalWords">0</div>
+                            <div class="text-sm text-gray-600">总单词</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-green-600" id="modalMasteredWords">0</div>
+                            <div class="text-sm text-gray-600">已掌握</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-orange-600" id="modalLearningWords">0</div>
+                            <div class="text-sm text-gray-600">学习中</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-purple-600" id="modalReviewWords">0</div>
+                            <div class="text-sm text-gray-600">需复习</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="text-2xl font-bold mb-4 gradient-text">📚 WordMaster</div>
+            <p class="text-gray-400 mb-4">让英语学习变得更简单、更高效</p>
+            <div class="text-sm text-gray-500">
+                © 2025 WordMaster. 专注于英语单词学习体验
+            </div>
+        </div>
+    </footer>
+    <script src="idb.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
